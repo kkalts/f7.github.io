@@ -1383,6 +1383,8 @@ while(1)&#123;
 <li><p>然后当前进程执行的<code>select</code>函数再次检查，就会发现这个就绪的<code>socket了</code>,就会给就绪的<code>socket</code>的<code>fd</code>文件描述符打标记，然后<code>select</code>函数就执行完了，返回到java层面就涉及到内核态和用户态的转换，<strong>后面的事情就是轮询检查</strong>每一个socket的fd是否被打了标记，然后就是处理被打了标记的socket就ok了</p>
 </li>
 </ul>
+<p><img src="https://raw.githubusercontent.com/kkalts/PictureB/master/img/20210210230414.png"></p>
+<p><img src="https://raw.githubusercontent.com/kkalts/PictureB/master/img/pig.jpg" alt="测试"></p>
 
                 
             </div>
