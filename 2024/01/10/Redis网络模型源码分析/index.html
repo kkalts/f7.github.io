@@ -1,0 +1,1963 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+
+
+<head>
+
+	
+	  <meta name="google-site-verification" content="Gs34uss4wyyRzkEbidgBj_SCG_qN2c-ptIQYD5e4nzs" />
+	
+	
+	  <meta name="baidu-site-verification" content="ABCDEFG_XYZ" />
+	
+    <meta charset="utf-8">
+    <meta name="keywords" content="Redis网络模型源码分析, f7">
+    <meta name="description" content="">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="renderer" content="webkit|ie-stand|ie-comp">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+
+
+    <title>Redis网络模型源码分析 | f7</title>
+    <link rel="icon" type="image/png" href="/f7.github.io/favicon.png">
+
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/libs/awesome/css/all.css">
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/libs/materialize/materialize.min.css">
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/libs/aos/aos.css">
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/libs/animate/animate.min.css">
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/libs/lightGallery/css/lightgallery.min.css">
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/css/matery.css">
+    <link rel="stylesheet" type="text/css" href="/f7.github.io/css/my.css">
+
+    <script src="/f7.github.io/libs/jquery/jquery.min.js"></script>
+
+<meta name="generator" content="Hexo 5.3.0"><link rel="stylesheet" href="/f7.github.io/css/prism-tomorrow.css" type="text/css"></head>
+
+
+
+
+<body>
+    <header class="navbar-fixed">
+    <nav id="headNav" class="bg-color nav-transparent">
+        <div id="navContainer" class="nav-wrapper container">
+            <div class="brand-logo">
+                <a href="/f7.github.io/" class="waves-effect waves-light">
+                    
+                    <img src="/f7.github.io/medias/logo.png" class="logo-img" alt="LOGO">
+                    
+                    <span class="logo-span">f7</span>
+                </a>
+            </div>
+            
+
+<a href="#" data-target="mobile-nav" class="sidenav-trigger button-collapse"><i class="fas fa-bars"></i></a>
+<ul class="right nav-menu">
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/" class="waves-effect waves-light">
+      
+      <i class="fas fa-home" style="zoom: 0.6;"></i>
+      
+      <span>首页</span>
+    </a>
+    
+  </li>
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/tags" class="waves-effect waves-light">
+      
+      <i class="fas fa-tags" style="zoom: 0.6;"></i>
+      
+      <span>标签</span>
+    </a>
+    
+  </li>
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/categories" class="waves-effect waves-light">
+      
+      <i class="fas fa-bookmark" style="zoom: 0.6;"></i>
+      
+      <span>分类</span>
+    </a>
+    
+  </li>
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/archives" class="waves-effect waves-light">
+      
+      <i class="fas fa-archive" style="zoom: 0.6;"></i>
+      
+      <span>归档</span>
+    </a>
+    
+  </li>
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/about" class="waves-effect waves-light">
+      
+      <i class="fas fa-user-circle" style="zoom: 0.6;"></i>
+      
+      <span>关于</span>
+    </a>
+    
+  </li>
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/contact" class="waves-effect waves-light">
+      
+      <i class="fas fa-comments" style="zoom: 0.6;"></i>
+      
+      <span>留言板</span>
+    </a>
+    
+  </li>
+  
+  <li class="hide-on-med-and-down nav-item">
+    
+    <a href="/f7.github.io/friends" class="waves-effect waves-light">
+      
+      <i class="fas fa-address-book" style="zoom: 0.6;"></i>
+      
+      <span>友情链接</span>
+    </a>
+    
+  </li>
+  
+  <li>
+    <a href="#searchModal" class="modal-trigger waves-effect waves-light">
+      <i id="searchIcon" class="fas fa-search" title="搜索" style="zoom: 0.85;"></i>
+    </a>
+  </li>
+</ul>
+
+
+<div id="mobile-nav" class="side-nav sidenav">
+
+    <div class="mobile-head bg-color">
+        
+        <img src="/f7.github.io/medias/logo.png" class="logo-img circle responsive-img">
+        
+        <div class="logo-name">f7</div>
+        <div class="logo-desc">
+            
+            Never really desperate, only the lost of the soul.
+            
+        </div>
+    </div>
+
+    
+
+    <ul class="menu-list mobile-menu-list">
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-home"></i>
+			
+			首页
+		</a>
+          
+        </li>
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/tags" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-tags"></i>
+			
+			标签
+		</a>
+          
+        </li>
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/categories" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-bookmark"></i>
+			
+			分类
+		</a>
+          
+        </li>
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/archives" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-archive"></i>
+			
+			归档
+		</a>
+          
+        </li>
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/about" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-user-circle"></i>
+			
+			关于
+		</a>
+          
+        </li>
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/contact" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-comments"></i>
+			
+			留言板
+		</a>
+          
+        </li>
+        
+        <li class="m-nav-item">
+	  
+		<a href="/f7.github.io/friends" class="waves-effect waves-light">
+			
+			    <i class="fa-fw fas fa-address-book"></i>
+			
+			友情链接
+		</a>
+          
+        </li>
+        
+        
+        <li><div class="divider"></div></li>
+        <li>
+            <a href="https://github.com/blinkfox/hexo-theme-matery" class="waves-effect waves-light" target="_blank">
+                <i class="fab fa-github-square fa-fw"></i>Fork Me
+            </a>
+        </li>
+        
+    </ul>
+</div>
+
+
+        </div>
+
+        
+            <style>
+    .nav-transparent .github-corner {
+        display: none !important;
+    }
+
+    .github-corner {
+        position: absolute;
+        z-index: 10;
+        top: 0;
+        right: 0;
+        border: 0;
+        transform: scale(1.1);
+    }
+
+    .github-corner svg {
+        color: #0f9d58;
+        fill: #fff;
+        height: 64px;
+        width: 64px;
+    }
+
+    .github-corner:hover .octo-arm {
+        animation: a 0.56s ease-in-out;
+    }
+
+    .github-corner .octo-arm {
+        animation: none;
+    }
+
+    @keyframes a {
+        0%,
+        to {
+            transform: rotate(0);
+        }
+        20%,
+        60% {
+            transform: rotate(-25deg);
+        }
+        40%,
+        80% {
+            transform: rotate(10deg);
+        }
+    }
+</style>
+
+<a href="https://github.com/blinkfox/hexo-theme-matery" class="github-corner tooltipped hide-on-med-and-down" target="_blank"
+   data-tooltip="Fork Me" data-position="left" data-delay="50">
+    <svg viewBox="0 0 250 250" aria-hidden="true">
+        <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
+        <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2"
+              fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
+        <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z"
+              fill="currentColor" class="octo-body"></path>
+    </svg>
+</a>
+        
+    </nav>
+
+</header>
+
+    
+
+
+
+<div class="bg-cover pd-header post-cover" style="background-image: url('/f7.github.io/medias/featureimages/5.jpg')">
+    <div class="container" style="right: 0px;left: 0px;">
+        <div class="row">
+            <div class="col s12 m12 l12">
+                <div class="brand">
+                    <h1 class="description center-align post-title">Redis网络模型源码分析</h1>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<main class="post-container content">
+
+    
+    <link rel="stylesheet" href="/f7.github.io/libs/tocbot/tocbot.css">
+<style>
+    #articleContent h1::before,
+    #articleContent h2::before,
+    #articleContent h3::before,
+    #articleContent h4::before,
+    #articleContent h5::before,
+    #articleContent h6::before {
+        display: block;
+        content: " ";
+        height: 100px;
+        margin-top: -100px;
+        visibility: hidden;
+    }
+
+    #articleContent :focus {
+        outline: none;
+    }
+
+    .toc-fixed {
+        position: fixed;
+        top: 64px;
+    }
+
+    .toc-widget {
+        width: 345px;
+        padding-left: 20px;
+    }
+
+    .toc-widget .toc-title {
+        padding: 35px 0 15px 17px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        line-height: 1.5rem;
+    }
+
+    .toc-widget ol {
+        padding: 0;
+        list-style: none;
+    }
+
+    #toc-content {
+        padding-bottom: 30px;
+        overflow: auto;
+    }
+
+    #toc-content ol {
+        padding-left: 10px;
+    }
+
+    #toc-content ol li {
+        padding-left: 10px;
+    }
+
+    #toc-content .toc-link:hover {
+        color: #42b983;
+        font-weight: 700;
+        text-decoration: underline;
+    }
+
+    #toc-content .toc-link::before {
+        background-color: transparent;
+        max-height: 25px;
+
+        position: absolute;
+        right: 23.5vw;
+        display: block;
+    }
+
+    #toc-content .is-active-link {
+        color: #42b983;
+    }
+
+    #floating-toc-btn {
+        position: fixed;
+        right: 15px;
+        bottom: 76px;
+        padding-top: 15px;
+        margin-bottom: 0;
+        z-index: 998;
+    }
+
+    #floating-toc-btn .btn-floating {
+        width: 48px;
+        height: 48px;
+    }
+
+    #floating-toc-btn .btn-floating i {
+        line-height: 48px;
+        font-size: 1.4rem;
+    }
+</style>
+<div class="row">
+    <div id="main-content" class="col s12 m12 l9">
+        <!-- 文章内容详情 -->
+<div id="artDetail">
+    <div class="card">
+        <div class="card-content article-info">
+            <div class="row tag-cate">
+                <div class="col s7">
+                    
+                    <div class="article-tag">
+                        
+                            <a href="/f7.github.io/tags/Redis/">
+                                <span class="chip bg-color">Redis</span>
+                            </a>
+                        
+                            <a href="/f7.github.io/tags/I-O/">
+                                <span class="chip bg-color">I/O</span>
+                            </a>
+                        
+                            <a href="/f7.github.io/tags/Reactor/">
+                                <span class="chip bg-color">Reactor</span>
+                            </a>
+                        
+                    </div>
+                    
+                </div>
+                <div class="col s5 right-align">
+                    
+                </div>
+            </div>
+
+            <div class="post-info">
+                
+                <div class="post-date info-break-policy">
+                    <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
+                    2024-01-10
+                </div>
+                
+
+                
+
+                
+                <div class="info-break-policy">
+                    <i class="far fa-file-word fa-fw"></i>文章字数:&nbsp;&nbsp;
+                    6.5k
+                </div>
+                
+
+                
+                <div class="info-break-policy">
+                    <i class="far fa-clock fa-fw"></i>阅读时长:&nbsp;&nbsp;
+                    27 分
+                </div>
+                
+
+                
+            </div>
+        </div>
+        <hr class="clearfix">
+
+        
+
+        
+
+        <div class="card-content article-card-content">
+            <div id="articleContent">
+                <h1 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h1><p>若以下有图片加载不出可见文档： </p>
+<p>Redis网络模型源码分析<br><a target="_blank" rel="noopener" href="https://kdocs.cn/l/cddCBLN1ttA8">https://kdocs.cn/l/cddCBLN1ttA8</a></p>
+<p><a href="https://kkalts.github.io/f7.github.io/2021/02/10/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/#toc-heading-26">https://kkalts.github.io/f7.github.io/2021/02/10/IO%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8%E5%BA%95%E5%B1%82%E5%8E%9F%E7%90%86/#toc-heading-26</a></p>
+<h1 id="Redis网络模型"><a href="#Redis网络模型" class="headerlink" title="Redis网络模型"></a>Redis网络模型</h1><h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>Redis的事件<br>• 文件事件：socket的可读可写事件，Redis服务器通过套接字与客户端（或者其他Redis服务器）进行连接，文件事件是服务器对套接字操作的抽象，服务器与客户端的通信会产生相应的文件事件，而服务器则通过监听并处理这些事件来完成一系列网络通信操作。<br>文件事件有多种，监听连接，读写数据<br>• 时间事件：Redis中的一些定时操作（比如serverCron函数）需要在给定时间点执行，时间事件就是这类定时操作的抽象；redis只有一个时间事件，各种定时任务都封装在其中？</p>
+<h2 id="Reactor"><a href="#Reactor" class="headerlink" title="Reactor"></a>Reactor</h2><p>redis采用的是单线程reactor。单机压测QPS可以达到10w，因此不要小看单线程的reactor,在选型时要慎重，不是说越复杂的东西就越好，适合才是最好的。</p>
+<p>Redis 6.0之前单线程IO Reactor模型的实现，和Redis 6.0的多线程IO Reactor模型的实现</p>
+<p>Reactor: The reactor design pattern is an event handling pattern for handling service delivered concurrently to a service handler by one or more inputs. The service handler then demultiplexes the incoming requests and dispatches them synchronously to the associated request handlers.<br>由定义可以看出，Reactor模型本身是一个较为宽泛的定义，满足以下条件的都可以称为Reactor模型。<br>• 事件驱动模式<br>• 能够处理一个或多个输入<br>• 将事件分发个对应的handlers（回调函数）</p>
+<p>Reactor一般组成<br><strong>事件多路分发器</strong>：即seletc poll epoll；将事件源注册到分发器上，比如epoll中使用epoll_create创建epoll，使用epoll_ctl注册事件源（fd）和事件（事件类型）epoll，使用epoll_wait等待事件分发。redis即eventLoop</p>
+<p><strong>handle（事件源）</strong>，用于识别每一个事件，在linux上是文件描述符fd <br>**reactor(反应器)**，用于管理事件调度及注册删除事件等。当有激活的事件时（就绪的事件），则调用器回调函数处理，没有则运行事件主循环，在redis里就是处理函数（aeProcessEvents）及里面的各个方面</p>
+<p><strong>event handler（事件处理器）</strong>：即回调函数 </p>
+<h2 id="Redis源码"><a href="#Redis源码" class="headerlink" title="Redis源码"></a>Redis源码</h2><p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/HSRK4BIAQ4" alt="img"></p>
+<h3 id="主要流程"><a href="#主要流程" class="headerlink" title="主要流程"></a>主要流程</h3><p>以下是主要流程，没有涉及 单线程/多线程 </p>
+<p>在一个aeMain中一个while(){}循环，在循环内一直处理事件 aeProcessEvents<br>（）</p>
+<p>ae.c </p>
+<pre class=" language-C++"><code class="language-C++">void aeMain(aeEventLoop *eventLoop) &#123;
+    eventLoop->stop = 0;
+    while (!eventLoop->stop) &#123;
+        if (eventLoop->beforesleep != NULL)
+        // 进程阻塞之前会调用beforesleep函数  进程因为某种原因被唤醒之后会调用aftersleep函数
+    // 执行一些不是很费时的操作，如：集群相关操作、过期键删除操作（这里可称为快速过期键删除）、向客户端返回命令回复        
+    eventLoop->beforesleep(eventLoop);
+        aeProcessEvents(eventLoop, AE_ALL_EVENTS|AE_CALL_AFTER_SLEEP);
+    &#125;
+
+&#125;
+</code></pre>
+<p>在 <strong><em>\</em>aeProcessEvents 中处理 读写事件**</strong> </p>
+<p> 首先可见参数eventLoop，其实就是epoll的epoll空间，对epoll相关的封装结构体 </p>
+<pre class=" language-c++"><code class="language-c++">/* State of an event based program */
+typedef struct aeEventLoop &#123;
+    int maxfd;   /* highest file descriptor currently registered */ fd是递增的，每个连接有一个fd 最大fd
+    int setsize; /* max number of file descriptors tracked */最大fd 容量
+    long long timeEventNextId;
+    time_t lastTime;     /* Used to detect system clock skew */ 上次时间，检查系统时钟偏移
+    aeFileEvent *events; /* Registered events */ 监听队列
+    aeFiredEvent *fired; /* Fired events */ 就绪队列
+    aeTimeEvent *timeEventHead; // 时间事件 ；Redis有多个定时任务，因此理论上应该有多个时间事件，多个时间事件形成链表，
+timeEventHead即为时间事件链表头节点；
+    int stop;    // 停止信号
+    void *apidata; /* This is used for polling API specific data */
+    aeBeforeSleepProc *beforesleep;
+    aeBeforeSleepProc *aftersleep;
+
+&#125; aeEventLoop; 
+</code></pre>
+<pre class=" language-c++"><code class="language-c++">int aeProcessEvents(aeEventLoop *eventLoop, int flags)&#123;
+    。。。。。 // 查找最早会发生的时间事件，以此作为aeApiPoll需要传入的超时时间 
+    // 避免在执行epoll_wait 阻塞时某个定时任务到时间需要处理
+    shortest = aeSearchNearestTimer(eventLoop);
+    。。。。。
+    // tvp是epoll_wait 是否阻塞 超时时间 经过之前的shortest计算而来
+    // 阻塞等待文件事件的产生
+     numevents = aeApiPoll(eventLoop, tvp); // 多路复用封装 提供seletc epoll等
+        // ③处理文件事件；
+    // ④处理时间事件
+&#125;
+</code></pre>
+<p>看ae_epoll.c内的aeApiPoll </p>
+<p>其中封装了epoll _wait并将就绪事件放入eventLoop的就绪列表。</p>
+<pre class=" language-C++"><code class="language-C++">static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) &#123;
+
+      aeApiState *state = eventLoop->apidata;
+    int retval, numevents = 0;
+    // 调用epoll_wait 返回就绪事件
+    retval = epoll_wait(state->epfd,state->events,eventLoop->setsize,
+            tvp ? (tvp->tv_sec*1000 + tvp->tv_usec/1000) : -1);
+    if (retval > 0) &#123;
+        int j;
+
+        numevents = retval;
+        for (j = 0; j < numevents; j++) &#123;
+            int mask = 0;
+            struct epoll_event *e = state->events+j;
+               // 确定是哪个事件
+            if (e->events & EPOLLIN) mask |= AE_READABLE;
+            if (e->events & EPOLLOUT) mask |= AE_WRITABLE;
+            if (e->events & EPOLLERR) mask |= AE_WRITABLE;
+            if (e->events & EPOLLHUP) mask |= AE_WRITABLE;
+        // 放入就绪列表中
+            eventLoop->fired[j].fd = e->data.fd;
+            eventLoop->fired[j].mask = mask;
+        &#125;
+    &#125;
+    return numevents;
+&#125;
+</code></pre>
+<p>找到就绪事件后 回到aeProcessEvents中处理就绪事件，这里就和一般的代码不一样的了</p>
+<p>一般代码是 epoll_wait后 直接看就绪事件是什么，然后直接做对应读写处理。</p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/4SJ24BIARM" alt="img"></p>
+<p>而这里做了解耦，这里就体现了reactor，在这里处理就绪事件的读写等处理 </p>
+<p>reactor模型将对fd的管理（原来获取到文件描述符，确定事件，然后做读写处理）转换为对IO事件的管理，epoll_wait只做IO检测 （检测是读io/写IO） 将对应的IO转化为事件，读写抛到后面的回调操作处理（aeProcessEvents中的wfileProc这种）</p>
+<pre class=" language-C+"><code class="language-C+">int aeProcessEvents(aeEventLoop *eventLoop, int flags)
+&#123;
+
+    ....
+
+  numevents = aeApiPoll(eventLoop, tvp);
+    // 遍历就绪队列
+for (j = 0; j < numevents; j++) &#123;
+            aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
+            int mask = eventLoop->fired[j].mask;
+            int fd = eventLoop->fired[j].fd;
+            int fired = 0; /* Number of events fired for current fd. */
+
+            。。。
+            // 判断就绪事件是什么事件 调用对应的回调函数 读事件
+            if (!invert && fe->mask & mask & AE_READABLE) &#123;
+                fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+                fired++;
+            &#125;
+
+            /* Fire the writable event. */ 写事件
+            if (fe->mask & mask & AE_WRITABLE) &#123;
+                if (!fired || fe->wfileProc != fe->rfileProc) &#123;
+                    fe->wfileProc(eventLoop,fd,fe->clientData,mask);
+                    fired++;
+                &#125;
+            &#125;
+
+            /* If we have to invert the call, fire the readable event now
+             * after the writable one. */
+            if (invert && fe->mask & mask & AE_READABLE) &#123;
+                if (!fired || fe->wfileProc != fe->rfileProc) &#123;
+                    fe->rfileProc(eventLoop,fd,fe->clientData,mask);
+                    fired++;
+                &#125;
+            &#125;
+
+            processed++;
+        &#125;
+
+ /* Check time events */ 文件事件处理完 处理事件事件
+    if (flags & AE_TIME_EVENTS)
+        processed += processTimeEvents(eventLoop);
+
+    return processed; /* return the number of processed file/time events */
+
+    &#125;
+</code></pre>
+<p>如上 aeApiPoll 和 aeProcessEvents 中的代码完全可以复用，只需要修改事件，增加事件回调函数即可。</p>
+<p>以上是Reactor的主流程</p>
+<p>单线程单Reactor模型</p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/4HW24BIAO4" alt="img"></p>
+<h3 id="Server启动过程"><a href="#Server启动过程" class="headerlink" title="Server启动过程"></a>Server启动过程</h3><p>前置server结构体</p>
+<pre class=" language-C++"><code class="language-C++">struct redisServer &#123;
+ char *configfile; 配置文件绝对路径。
+ int dbnum; 数据库的数目，可通过参数databases配置，默认16。
+ redisDb *db; 数据库数组，数组的每个元素都是redisDb类型。
+ dict *commands; 命令字典，Redis支持的所有命令都存储在这个字典中，key为命令名称，value为struct redisCommand对象
+ 
+aeEventLoop *el; Redis是典型的事件驱动程序，el代表Redis的事件循环，类型为aeEventLoop 
+ int port; 服务器监听端口号，可通过参数port配置，默认端口号6379
+ char *bindaddr[CONFIG_BINDADDR_MAX]; 服务端可绑定的ip地址数组，可以绑定多个 比如有多个虚拟网卡，最多16个
+ int bindaddr_count;， 
+ int ipfd[CONFIG_BINDADDR_MAX]; 针对bindaddr字段的所有IP地址创建的socket文件描述符
+ int ipfd_count; 创建的socket文件描述符数目
+ list *clients;  ：当前连接到Redis服务器的所有客户端
+ int maxidletime;  最大空闲时间，可通过参数timeout配置，结合client对象的lastinteraction字段，当客户端没有与服务器交互的时间超过maxidletime时，会认为客户端超时并释放该客户端连接
+
+&#125;
+</code></pre>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/YGXK4BIA3Q" alt="img"></p>
+<p>在启动过程中有事件创建 启动事件循环等</p>
+<p>下面是比较完整的流程 服务器初始化 server.c</p>
+<p>①初始化配置；</p>
+<p>②加载并解析配置文件；</p>
+<p>③初始化服务端内部变量，包括数据库、全局共享变量等；</p>
+<p>④创建时间循环eventLoop。 aeCreateEventLoop </p>
+<p>完成这些操作之后，Redis将创建socket并启动监听，同时创建对应的文件事件与时间事件并开始事件循环。</p>
+<p>步骤⑤，创建socket并启动监听。 listenToPort</p>
+<pre class=" language-c++"><code class="language-c++">// port是用配置的服务端监听Port 参数fds与count可用作输出参数，
+fds数组存储创建的所有socket文件描述符，count存储socket数目。
+fds传入的是server.ipfd   所有监听socket文件描述符    : int ipfd[CONFIG_BINDADDR_MAX]; /* TCP socket file descriptors */
+int listenToPort(int port, int *fds, int *count) &#123;
+for (j = 0; j < server.bindaddr_count || j == 0; j++) &#123;
+ //创建socket并启动监听，文件描述符存储在fds数组作为返回参数
+ fds[*count] = anetTcpServer(server.neterr,port,server.bindaddr[j],
+ server.tcp_backlog);
+ //设置socket非阻塞
+ anetNonBlock(NULL,fds[*count]);
+ (*count)++;
+ &#125;
+
+
+
+
+&#125;
+</code></pre>
+<p>步骤⑥，创建文件事件与时间事件 </p>
+<p>initServer() 中  </p>
+<p> 创建时间事件， redis 中只有创建一个时间事件，此时间事件的处理函数为serverCron，初次创建时1毫秒后就会被触发。</p>
+<p>serverCron中有很多定时任务</p>
+<pre class=" language-c++"><code class="language-c++"> if (aeCreateTimeEvent(server.el, 1, serverCron, NULL, NULL) == AE_ERR) &#123;
+        serverPanic("Can't create event loop timers.");
+        exit(1);
+
+
+
+    &#125;
+for (j = 0; j < server.ipfd_count; j++) &#123;
+     // ipfd数组存储创建的所有监听socket文件描述符，需要遍历所有的监听socket，为其创建对应的文件事件。      
+        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,
+            // 监听事件的处理函数（回调函数）为acceptTcpHandler（处理连接事件函数），实现了socket连接请求的accept，以及客户端对象的创建。
+            // 监听server.ipfd这些socket fd,当客户端发起socket连接请求时，服务端会执行函数acceptTcpHandler处理
+            acceptTcpHandler,NULL) == AE_ERR)
+            &#123;
+                serverPanic(
+                    "Unrecoverable error creating server.ipfd file event.");
+            &#125;
+```
+
+
+
+    &#125;
+acceptTcpHandler
+    anetTcpAccept 接受（accept）客户端的连接请求
+    acceptCommonHandler --- createClient 
+                            创建客户端对象，并初始化对象各字段:client *c = zmalloc(sizeof(client));
+                创建文件事件 读事件 if (aeCreateFileEvent(server.el,fd,AE_READABLE,
+                       readQueryFromClient, c) == AE_ERR)   // 回调函数为readQueryFromClient
+                                当服务器（reactor）接收到客户端的命令请求时，触发读事件，会执行此函数
+                        readQueryFromClient会将来自客户端的数据读到client->querybuf中，
+    之后processInputBufferAndReplicate（readQueryFromClient函数中执行）直接处理buffer的数据。
+
+    
+    //初始化client结构体各字段       
+</code></pre>
+<p>步骤⑦开启事件循环          </p>
+<pre class=" language-c++"><code class="language-c++">int main   ( )  &#123; 
+    .....
+    initServer();
+    ......
+     aeMain(server.el);
+（）
+
+
+&#125;
+</code></pre>
+<h3 id="命令处理过程"><a href="#命令处理过程" class="headerlink" title="命令处理过程"></a>命令处理过程</h3><p>服务器启动后，只需要等待客户端连接并发送命令请求即可。  </p>
+<p>服务端如何处理命令？</p>
+<p>命令处理过程分为3个阶段</p>
+<p>解析命令请求、调用命令和返回结果给客户端</p>
+<h4 id="命令解析"><a href="#命令解析" class="headerlink" title="命令解析"></a>命令解析</h4><p>TCP连接可能有半包和粘包情况</p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/G2324BIAYU" alt="img"></p>
+<p>如何避免？</p>
+<p>一般做法</p>
+<p>①数据包长度固定；</p>
+<p>②通过特定的分隔符区分，比如HTTP协议就是通过换行符区分<br>的；</p>
+<p>③通过在数据包头部设置长度字段区分数据包长度，比如FastCGI<br>协议</p>
+<h5 id="redis做法及redis的自定义协议格式"><a href="#redis做法及redis的自定义协议格式" class="headerlink" title="redis做法及redis的自定义协议格式"></a>redis做法及redis的自定义协议格式</h5><p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/23KK4BIAOI" alt="img"></p>
+<p>redis还有内联命令，这里不展开</p>
+<h5 id="解析命令的前置流程"><a href="#解析命令的前置流程" class="headerlink" title="解析命令的前置流程"></a>解析命令的前置流程</h5><p>redis服务端收到命令后，触发readQueryFromClient函数，（触发后会在事件循环中被处理？）</p>
+<p>readQueryFromClient中 <strong><em>\</em>来自客户端的数据读到**</strong><code>***\*client-&gt;querybuf\****</code><strong><em>\</em>中**</strong></p>
+<p> client即redis程序构造的client结构体</p>
+<p>Redis使用结构体client存储客户端连接的所有信息，包括但不限于客户端<br>的名称、客户端连接的套接字描述符、客户端当前选择的数据库ID、<br>客户端的输入缓冲区与输出缓冲区等</p>
+<pre><code>typedef struct client &#123;
+    uint64_t id;         为客户端唯一ID，通过全局变量server.next_client_id实
+现。
+    int fd;                 /* Client socket. */
+    redisDb *db;            /* Pointer to currently SELECTed DB. */
+    sds querybuf;         输入缓冲区，recv函数接收的客户端命令请求会暂
+时缓存在此缓冲区。 // clent-&gt;server buffer, 最大长度为 PROTO_MAX_QUERYBUF_LEN 1G
+    ...
+     robj *name;   客户端名称，可以使用命令CLIENT SETNAME设置
+     time_t lastinteraction  客户端上次与服务器交互的时间，以此实现客户端的超时处理。
+ 
+     int argc; 输入缓冲区的命令请求 解析后的参数个数
+     robj **argv; 输入缓冲区的命令请求 解析后的参数数组
+     struct redisCommand *cmd;  待执行的客户端命令；解析命令请求后，会根据命令名称
+查找该命令对应的命令对象，存储在客户端cmd字段，可以看到其类
+型为struct redisCommand
+ 
+     list *reply;  输出链表，存储待返回给客户端的命令回复数据
+     unsigned long long reply_bytes; 输出链表中所有节点的存储空间总和
+     size_t sentlen;;  已返回给客户端的字节数
+    /* server-&gt;clent buffer, 最大16K*/
+    int bufpos;  输出缓冲区中数据的最大字节位置
+    char buf[PROTO_REPLY_CHUNK_BYTES];  输出缓冲区 存储待返回给客户端的命令回复数据
+&#125; client;
+reply和buf 都用于缓存待返回给客户端的命令回复数据，实二者只是用于返回不同的数据类型而已
+</code></pre>
+<p>在readQueryFromClient中有  processInputBufferAndReplicate，*<strong>*直接处理buffer的数据**</strong>。</p>
+<p>initserver -&gt;aeCreateFileEvent-&gt;acceptTcpHandler -&gt;createClient-&gt; readQueryFromClient - &gt; processInputBufferAndReplicate（判断当前是不是master 是则进行同步命令到主，不是则不同步）-&gt;processInputBuffer</p>
+<p>如图</p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/7DLK4BIAEI" alt="img"></p>
+<h5 id="具体如何解析命令？"><a href="#具体如何解析命令？" class="headerlink" title="具体如何解析命令？"></a>具体如何解析命令？</h5><p>networking.c</p>
+<p>processMultibulkBuffer解析一般命令</p>
+<ol>
+<li>解析命令请求参数数目</li>
+</ol>
+<p>可由上面的协议格式可见，参数数目 <code>*3\r\n</code> 这种形式，以<code>*</code>开头，</p>
+<p>解析出参数数目后放在*<strong>*客户端对象的multibulklen字段**</strong></p>
+<ol>
+<li>循环解析每个请求参数</li>
+</ol>
+<p>循环multibulklen <code>while(c-&gt;multibulklen) &#123;</code></p>
+<p>先解析参数的字符串长度，*<strong>*暂存在客户端对象的bulklen字段**</strong></p>
+<p>然后解析该长度的参数，创建字符串对象，更新multibulklen，直到multibulklen为0，命令创建完字符串对象会按照命令放在客户端对象的argv（参数对象数组）和argc（参数数目）字段，以及client的cmd字段</p>
+<p>为什么参数长度要放在客户端的对象中不能使用局部变量？</p>
+<p> 因为有半包 粘包问题，可能解析出来的是一半命令，如果使用局部变量，后面连不上一个完整的命令。</p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/SXN24BIASU" alt="img"></p>
+<h3 id="调用命令"><a href="#调用命令" class="headerlink" title="调用命令"></a>调用命令</h3><p>命令解析完，调用processCommand 执行命令， </p>
+<p>在processCommand中 真正执行命令之前有命令校验操作 </p>
+<p>。。。。。。 </p>
+<p>processCommand（在processInputBuffer中）-&gt;call(c,CMD_CALL_FULL);</p>
+<p>最终执行命令 </p>
+<pre><code> /* Call the command. */
+    dirty = server.dirty;
+    start = ustime();
+    c-&gt;cmd-&gt;proc(c);
+    duration = ustime()-start;
+    ...
+
+// 更新统计信息：当前命令执行时间与调用次数 版本不同 代码不同
+
+//记录慢查询日志 暂时忽略 Redis5设计与源码分析 P312 9.3.3
+slowlogPushEntryIfNeeded(c,c-&gt;argv,c-&gt;argc,duration);
+</code></pre>
+<h3 id="返回结果给客户端"><a href="#返回结果给客户端" class="headerlink" title="返回结果给客户端"></a>返回结果给客户端</h3><p>Redis有五种返回结果类型，客户端可以根据返回结果的第一个字符来判断是哪一种</p>
+<p>返回结果通过addReply函数，将返回数据暂存在client的buf 或者reply 输出缓冲区内</p>
+<p>addReply会调用各种函数，比如</p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/TDT24BIAEU" alt="img"></p>
+<pre><code>int _addReplyToBuffer(client *c, const char *s, size_t len) &#123;
+ if (listLength(c-&gt;reply) &gt; 0) return C_ERR;
+&#125;
+</code></pre>
+<p>_addReplyToBuffer 中 如果client的reply有数据则返回错误，一般放在buf里，调用_addReplyToBuffer失败会放在reply里。</p>
+<p>addReply同时将当前客户端（有数据返回的客户端）添加到server结构体的clients_pending_write链表中，以便后续能快速查找出哪些客户端有<br>数据需要发送。</p>
+<p>然后在aeMain中每次循环前都有beforesleep，在beforesleep(server.c)的handleClientsWithPendingWrites()中遍历clients_pending_write 将缓冲区内的数据发送</p>
+<pre><code>int handleClientsWithPendingWrites(void) &#123;
+    
+    int processed = listLength(server.clients_pending_write);
+
+    listRewind(server.clients_pending_write,&amp;li);
+    // 遍历链表通过writeToClient发送数据，
+    while((ln = listNext(&amp;li))) &#123;
+      
+        /* Try to write buffers to the client socket. */
+        if (writeToClient(c-&gt;fd,c,0) == C_ERR) continue;
+
+    // 如果writeToClient一次性发送不完数据（数据量太大），这里同时增加了文件事件，监听当前客户端socket文件描述符的可
+写事件
+// 添加可写事件到epoll空间的监听队列中 注册
+if (aeCreateFileEvent(server.el, c-&gt;fd, ae_flags,
+                sendReplyToClient, c) == AE_ERR) //sendReplyToClient 发送剩余部分的数据给
+客户端。
+            &#123;
+                    freeClientAsync(c);
+            &#125;
+</code></pre>
+<p>每次事件循环前都要*<strong>*注册**</strong>一次可写事件？，在事件循环中持续监听是否可写并执行</p>
+<p>以上都是一个主线程 单线程完成的所以是单线程reactor。</p>
+<p>读写 处理命令都是一个线程处理 </p>
+<p> 对于一个命令结果返回，哪里显式调用addReply？应该是在每个命令的处理函数中</p>
+<p>整体网络通信流程</p>
+<p>redis 6.0后面加入多线程*<strong>*IO**</strong>模型，但是多线程是指网络读写socket IO时多线程，即多线程多reactor，实际执行命令还是单线程（主线程）的，不用担心命令（set get等）的并发安全问题。</p>
+<p><strong><em>\</em>所以引入的是多线程IO模型，重点是IO**</strong></p>
+<h3 id="多线程单Reactor模型"><a href="#多线程单Reactor模型" class="headerlink" title="多线程单Reactor模型"></a>多线程单Reactor模型</h3><h4 id="一些图"><a href="#一些图" class="headerlink" title="一些图"></a>一些图</h4><p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/G2TK6BIASA" alt="img"></p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/DT326BIA3U" alt="img"></p>
+<h4 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h4><p>利用列表 原子变量 提前创建线程等实现 IO多线程操作</p>
+<h5 id="readQueryFromClient"><a href="#readQueryFromClient" class="headerlink" title="readQueryFromClient"></a>readQueryFromClient</h5><p>与单线程的改变在readQueryFromClient中，</p>
+<p>单线程的readQueryFromClient是直接读取到的数据放在输入缓冲区，由主线程区去处理，</p>
+<pre><code>void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) &#123;
+    processInputBufferAndReplicate(c);
+&#125;
+</code></pre>
+<p>且注意在多线程6.0后版本中，readQueryFromClient在( networking.c)的createClient注册监听事件时是<code>connSetReadHandler(conn, readQueryFromClient);</code>这种方式，其实用途都一样，且<code>connSetReadHandler</code>最终也会调用 aeCreateFileEvent</p>
+<p>多线程的readQueryFromClient是 </p>
+<ol>
+<li>如果启用io线程则使用postponeClientRead会将待处理的client 放到clients_pending_read 最终会被IO线程处理</li>
+</ol>
+<p>使用IO线程 则直接返回</p>
+<ol>
+<li><p>也会将数据放到client的输入缓冲区</p>
+</li>
+<li><p>多线程的readQueryFromClient 会解析 调用命令（processInputBuffer），但是主线程启用了IO线程 即postponeClientRead满足情况 就不会走到下面 步骤2 3，对于IOThreadMain中的readQueryFromClient 走到步骤2 3，</p>
+</li>
+<li><ol>
+<li>但是在processInputBuffer中对于多线程（IO线程）这里只解析命令执行processMultibulkBuffer，不会真正的执行命令，在主进程执行命令</li>
+</ol>
+</li>
+</ol>
+<pre><code>6.0后的unstable版本代码
+processInputBuffer()&#123;
+
+     if (c-&gt;reqtype == PROTO_REQ_INLINE) &#123;
+            if (processInlineBuffer(c) != C_OK) break;
+        &#125; else if (c-&gt;reqtype == PROTO_REQ_MULTIBULK) &#123;
+            if (processMultibulkBuffer(c) != C_OK) break;
+        &#125; else &#123;
+            serverPanic(&quot;Unknown request type&quot;);
+        &#125;
+      /* Multibulk processing could see a &lt;= 0 length. */
+        if (c-&gt;argc == 0) &#123;
+            resetClient(c);
+        &#125; else &#123;
+            /* If we are in the context of an I/O thread, we can&#39;t really
+             * execute the command here. All we can do is to flag the client
+             * as one that needs to process the command. */
+            if (io_threads_op != IO_THREADS_OP_IDLE) &#123; 
+    // 对于IO线程io_threads_op是IO_THREADS_OP_READ
+                serverAssert(io_threads_op == IO_THREADS_OP_READ);
+                c-&gt;flags |= CLIENT_PENDING_COMMAND;
+                break;
+            &#125;
+
+            /* We are finally ready to execute the command. */
+            if (processCommandAndResetClient(c) == C_ERR) &#123;
+                /* If the client is no longer valid, we avoid exiting this
+                 * loop and trimming the client buffer later. So we return
+                 * ASAP in that case. */
+                return C_ERR;
+            &#125;
+        &#125;
+&#125;        
+
+6.0.0代码 与上面的意思一样 也是IO线程会不会真正的执行命令
+ if (c-&gt;argc == 0) &#123;
+            resetClient(c);
+        &#125; else &#123;
+            /* If we are in the context of an I/O thread, we can&#39;t really
+             * execute the command here. All we can do is to flag the client
+             * as one that needs to process the command. */
+        客户端的 flags 是 CLIENT_PENDING_READ 则不执行命令 ，
+    这里的CLIENT_PENDING_READ是在readQueryFromClient时postponeClientRead设置的
+        并设置为CLIENT_PENDING_COMMAND
+            if (c-&gt;flags &amp; CLIENT_PENDING_READ) &#123;
+                c-&gt;flags |= CLIENT_PENDING_COMMAND;
+                break;
+            &#125;
+
+            /* We are finally ready to execute the command. */
+            if (processCommandAndResetClient(c) == C_ERR) &#123;
+                /* If the client is no longer valid, we avoid exiting this
+                 * loop and trimming the client buffer later. So we return
+                 * ASAP in that case. */
+                return;
+
+            &#125;
+void readQueryFromClient(connection *conn) &#123;
+    ...
+    /* Check if we want to read from the client later when exiting from
+     * the event loop. This is the case if threaded I/O is enabled. */
+  
+    if (postponeClientRead(c)) return;
+    ...
+    processInputBuffer
+    
+&#125;。
+</code></pre>
+<p>都是读事件的回调函数但是可见，输入参数也是不同的，多线程的参数是connection（在client中也有conn参数，conn其实是把socket fd封装了一层），可以调用postponeClientRead来确定是否使用IO线程来处理IO，如果使用则将client加到server.clients_pending_read链表，由前面可类比知道clients_pending_read 待处理读事件的client<br>列表</p>
+<pre><code>/* Return 1 if we want to handle the client read later using threaded I/O.
+ * This is called by the readable handler of the event loop.
+ * As a side effect of calling this function the client is put in the
+ * pending read clients and flagged as such. */
+
+io_threads_active 必须为 1 ，也就是 IO 线程必须是激活状态
+server.io_threads_do_reads 用户配置必须是运行使用 IO 线程读取数据
+客户端的标志位 flags 必须不是 CLIENT_MASTER、CLIENT_SLAVE、CLIENT_PENDING_READ
+以上条件都满足，则将客户端的 flags 标志位设置为CLIENT_PENDING_READ，并将其入队到 server.clients_pending_read 数组
+
+int postponeClientRead(client *c) &#123;
+    if (io_threads_active &amp;&amp;
+        server.io_threads_do_reads &amp;&amp;
+        !ProcessingEventsWhileBlocked &amp;&amp;
+        !(c-&gt;flags &amp; (CLIENT_MASTER|CLIENT_SLAVE|CLIENT_PENDING_READ)))
+    &#123;
+        c-&gt;flags |= CLIENT_PENDING_READ; 设置flags为CLIENT_PENDING_READ
+        listAddNodeHead(server.clients_pending_read,c);
+        return 1;
+    &#125; else &#123;
+        return 0;
+    &#125;
+&#125;
+</code></pre>
+<h5 id="handleClientsWithPendingReadsUsingThreads"><a href="#handleClientsWithPendingReadsUsingThreads" class="headerlink" title="handleClientsWithPendingReadsUsingThreads"></a>handleClientsWithPendingReadsUsingThreads</h5><p><strong><em>\</em>多线程的beforeSleep**</strong>函数中有 handleClientsWithPendingReadsUsingThreads和handleClientsWithPendingReadsUsingThreads（暂时忽略），每次主循环都会调用handleClientsWithPendingReadsUsingThreads会将读写事件分配给IO线程（放到io_threads_list中），进入下一次轮训前, 将 <code>server.clients_pending_read</code> 和 <code>server.clients_pending_write</code> 处理完成, 保证列表中不再有待处理任务。</p>
+<pre><code> /* We should handle pending reads clients ASAP after event loop. */
+    handleClientsWithPendingReadsUsingThreads();
+还有一个处理write的
+handleClientsWithPendingWritesUsingThreads
+
+io_threads_list[i] 表示一个链表，链表上每个元素是一个client结构，表示对应的client上有待处理的事件
+IO线程列表
+
+在handleClientsWithPendingReadsUsingThreads中
+
+int handleClientsWithPendingReadsUsingThreads(void) &#123;
+    ...
+    listRewind(server.clients_pending_read,&amp;li); // 对clients_pending_read上的每个client处理
+    int item_id = 0;
+    while((ln = listNext(&amp;li))) &#123;
+        client *c = listNodeValue(ln);
+        // 这里通过item_id对线程数量取余，决定当前的任务分配个哪一个IO线程
+        int target_id = item_id % server.io_threads_num;
+        将client放到io_threads_list[target_id]的链表上
+        listAddNodeTail(io_threads_list[target_id],c);
+        item_id++;
+    &#125;
+
+       /* Give the start condition to the waiting threads, by setting the
+     * start condition atomic var. */
+    for (int j = 1; j &lt; server.io_threads_num; j++) &#123;
+        // 获取到每个IO线程上有多少个client在等待处理事件
+        int count = listLength(io_threads_list[j]);
+        // 这里会修改io_threads_pending数组里原子变量的值，通知IO线程干活
+    io_threads_pending[IO_THREADS_MAX_NUM]; 
+    io_threads_pending[i]表示第i个IO线程上待处理的事件数量
+    设置io_threads_pending[i].value的值为count值 通知IO线程开始干活，每个线程干多少活就看count值，使用原子变量
+        setIOPendingCount(j, count);
+    &#125;
+
+    // 主线程自己也会做一些IO的活 比如读数据
+/* Also use the main thread to process a slice of clients. */
+    listRewind(io_threads_list[0],&amp;li);
+    while((ln = listNext(&amp;li))) &#123;
+        client *c = listNodeValue(ln);
+        readQueryFromClient(c-&gt;conn);
+    &#125;
+    listEmpty(io_threads_list[0]);
+
+    // 等所有IO操作完成
+    while(1) &#123;
+        unsigned long pending = 0;
+        for (int j = 1; j &lt; server.io_threads_num; j++)
+            pending += getIOPendingCount(j);
+        if (pending == 0) break; // 每个线程都干完活
+    &#125;
+
+    ...
+    再次处理server.clients_pending_read数组中的客户端，
+如果客户端 flags 标志位为 CLIENT_PENDING_COMMAND（也就是 IO 线程把客户端的命令及参数解析完成）
+，则调用 processCommandAndResetClient() 函数直接执行命令，否则调用 processInputBuffer() 函数继续解析客户端的命令
+
+    while(listLength(server.clients_pending_read)) &#123;
+        ...
+        // 如果flag是CLIENT_PENDING_COMMAND 则执行命令，由processInputBuffer可见
+            是IO线程的 解析完命令 设置flags为CLIENT_PENDING_COMMAND了
+        if (c-&gt;flags &amp; CLIENT_PENDING_COMMAND) &#123;
+            c-&gt;flags &amp;= ~CLIENT_PENDING_COMMAND;
+            if (processCommandAndResetClient(c) == C_ERR) &#123;
+                /* If the client is no longer valid, we avoid
+                 * processing the client later. So we just go
+                 * to the next. */
+                continue;
+            &#125;
+        &#125;
+        processInputBuffer(c);
+    // ...
+    return processed;
+&#125;
+</code></pre>
+<p>readQueryFromClient -&gt; postponeClientRead -&gt; server.clients_pending_read链表 </p>
+<p>-&gt;handleClientsWithPendingReadsUsingThreads <code>io_threads_list</code>数组 -&gt;io_threads_pending</p>
+<h5 id="IOThreadMain"><a href="#IOThreadMain" class="headerlink" title="IOThreadMain"></a>IOThreadMain</h5><p>具体IO线程上处理 是在 IOThreadMain networking.c</p>
+<pre><code>void *IOThreadMain(void *myid) &#123;
+    // 前置准备    
+/* The ID is the thread number (from 0 to server.io_threads_num-1), and is
+     * used by the thread to just manipulate a single sub-array of clients. */
+    long id = (unsigned long)myid;
+    char thdname[16];
+
+    snprintf(thdname, sizeof(thdname), &quot;io_thd_%ld&quot;, id);
+    redis_set_thread_title(thdname);
+    redisSetCpuAffinity(server.server_cpulist);
+    makeThreadKillable();
+
+    // 死循环，一直处理
+    while(1) &#123;
+        /* Wait for start */  等待 
+        io_threads_pending[id]&gt;0 则表示有需要处理的client
+         for (int j = 0; j &lt; 1000000; j++) &#123;
+            if (getIOPendingCount(id) != 0) break;
+        &#125;
+
+        /* Give the main thread a chance to stop this thread. */ ?
+        if (getIOPendingCount(id) == 0) &#123;
+            pthread_mutex_lock(&amp;io_threads_mutex[id]);
+            pthread_mutex_unlock(&amp;io_threads_mutex[id]);
+            continue;
+        &#125;
+
+        serverAssert(getIOPendingCount(id) != 0); // 断言有需要处理的client
+
+        /* Process: note that the main thread will never touch our list
+         * before we drop the pending count to 0. */
+        处理IO事件
+        listIter li;
+        listNode *ln;
+        listRewind(io_threads_list[id],&amp;li); 
+        while((ln = listNext(&amp;li))) &#123;
+            client *c = listNodeValue(ln); 获取到需要处理的client
+            if (io_threads_op == IO_THREADS_OP_WRITE) &#123; 如果是写事件 则写
+                writeToClient(c,0);
+            &#125; else if (io_threads_op == IO_THREADS_OP_READ) &#123; 读事件 则读
+                readQueryFromClient(c-&gt;conn); 
+        // 这里IO线程如何不触发readQueryFromClient的 postponeClientRead？
+            &#125; else &#123;
+                serverPanic(&quot;io_threads_op value is unknown&quot;);
+            &#125;
+        &#125;
+        listEmpty(io_threads_list[id]);
+        setIOPendingCount(id, 0);
+    &#125;
+&#125;
+</code></pre>
+<p>server.c(InitServerLast) -&gt; InitServerLast -&gt;initThreadedIO-&gt;IOThreadMain</p>
+<p>在initThreadedIO中，</p>
+<pre><code>void initThreadedIO(void) &#123;
+    ......
+
+    /* Spawn and initialize the I/O threads. */
+    for (int i = 0; i &lt; server.io_threads_num; i++) &#123;
+        /* Things we do for all the threads including the main thread. */
+        io_threads_list[i] = listCreate(); //创建列表
+        if (i == 0) continue; /* Thread 0 is the main thread. */
+
+        /* Things we do only for the additional threads. */
+        pthread_t tid;
+        pthread_mutex_init(&amp;io_threads_mutex[i],NULL); // 初始化io_threads_mutex
+        setIOPendingCount(i, 0); // 初始化io_threads_pending 原子变量设置为0
+        pthread_mutex_lock(&amp;io_threads_mutex[i]); /* Thread will be stopped. */
+        // 创建IO线程
+        if (pthread_create(&amp;tid,NULL,IOThreadMain,(void*)(long)i) != 0) &#123;
+            serverLog(LL_WARNING,&quot;Fatal: Can&#39;t initialize IO thread.&quot;);
+            exit(1);
+        &#125;
+        io_threads[i] = tid;
+    &#125;
+&#125;
+</code></pre>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/K3T26BIAKE" alt="img"></p>
+<p>源码流程</p>
+<p><a target="_blank" rel="noopener" href="https://excalidraw.com/#json=UEiuBoycLIjZ4fmwxWn4u,0GpYnYYV82NDCGcO5HGCgg">Excalidraw — Collaborative whiteboarding made easy</a></p>
+<p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/FQJ3ABIASU" alt="img"></p>
+<p>综上可见，6.0之后是多线程Reactor，注意不是多线程 多reactor，应该是单reactor加 工作线程的模式</p>
+<h4 id="流程总结"><a href="#流程总结" class="headerlink" title="流程总结"></a>流程总结</h4><p>客户端与服务端建立连接，socket被包装为client</p>
+<p>客户端向服务端发送命令，服务端需要读取命令，事件分发器一直处于运行中，epoll监听读事件，</p>
+<ol>
+<li><p>epoll监听到读事件（如何监听到 就是epoll_wait底层 硬件等支撑），epoll_wait返回，将这个socket放在就绪列表</p>
+</li>
+<li><p>在循环中判断是什么事件，读事件则调用其回调函数  readQueryFromClient</p>
+</li>
+<li><p>readQueryFromClient中发现当前开启IO线程处理IO事件，则将client放入server.clients_pending_read</p>
+</li>
+<li><p>在aeMain的循环中，每次事件驱动前的beforesleep会执行handleClientsWithPendingReadsUsingThreads，</p>
+</li>
+<li><ol>
+<li><p>在其中将client放入io_threads_list[target_id]（<br>确定哪个线程处理），并为处理线程对应的io_threads_pending[i]设置原子量</p>
+</li>
+<li><p>工作线程在初始化server的时候就创建好，IO线程会死循环，当io_threads_pending[i]原子量&gt;0时开始取io_threads_list[target_id]中的client进行处理读写事件</p>
+</li>
+<li><ol>
+<li>发现是读事件则readQueryFromClient，这里readQueryFromClient解析指令，但不执行，回到handleClientsWithPendingReadsUsingThreads（主线程）</li>
+</ol>
+</li>
+<li><p>IO线程执行完，主线程执行指令</p>
+</li>
+</ol>
+</li>
+</ol>
+<h5 id="数据流转"><a href="#数据流转" class="headerlink" title="数据流转"></a>数据流转</h5><p><img src="http://www.kdocs.cn/api/v3/office/copy/bEJ0Y0g2SHZDRDUvalhSYnlVWGxUT1ZXZ1BtQW9iaVJ3NUpDdTFvRkl1cDN3SmtHYzhMcmhTQ0RQOWt5a1pjUTRGRzAzWEhOb0loWFhhZE5YYlh4d1Q5Q3dWVDZUc2pkY0V3WFQ0VU5ud2p6RndJQm5MaTU0Q3BvUTlKUnVMc1c0aUczVjhrMjhKS1Z0ZDdpQ3hxTU1WSi9XYVRCWEJVdWxnYTdHUmhtc0xTb1BwdnVUUVB6TlRQRFVlY0VaSkdrdEk1T0FVZ3ZjeWhkdiszSXdCQ2QrM3dhUlBGL0hpSFFGdGZibFk1TzdDRWFhQ3NIYXdodXd3OTUvNmcrVmxRcFJOcTZYSlJVZkRBPQ==/attach/object/JAJ3ABIAYU" alt="img"></p>
+<h1 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h1><p><a target="_blank" rel="noopener" href="https://juejin.cn/post/7124667316637270046#heading-6">Redis中的Reactor模型 - 掘金</a></p>
+<p><a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_45505313/article/details/108562756">https://blog.csdn.net/weixin_45505313/article/details/108562756</a></p>
+<p><a target="_blank" rel="noopener" href="https://hardcore.feishu.cn/docs/doccnvF0IxXFmA9DOZzuAMvP8Kg">https://hardcore.feishu.cn/docs/doccnvF0IxXFmA9DOZzuAMvP8Kg</a></p>
+
+                
+            </div>
+            <hr/>
+
+            
+
+    <div class="reprint" id="reprint-statement">
+        
+            <div class="reprint__author">
+                <span class="reprint-meta" style="font-weight: bold;">
+                    <i class="fas fa-user">
+                        文章作者:
+                    </i>
+                </span>
+                <span class="reprint-info">
+                    <a href="/f7.github.io/about" rel="external nofollow noreferrer">f7</a>
+                </span>
+            </div>
+            <div class="reprint__type">
+                <span class="reprint-meta" style="font-weight: bold;">
+                    <i class="fas fa-link">
+                        文章链接:
+                    </i>
+                </span>
+                <span class="reprint-info">
+                    <a href="https://kkalts.github.io/f7.github.io/f7.github.io/2024/01/10/Redis%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">https://kkalts.github.io/f7.github.io/f7.github.io/2024/01/10/Redis%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</a>
+                </span>
+            </div>
+            <div class="reprint__notice">
+                <span class="reprint-meta" style="font-weight: bold;">
+                    <i class="fas fa-copyright">
+                        版权声明:
+                    </i>
+                </span>
+                <span class="reprint-info">
+                    本博客所有文章除特別声明外，均采用
+                    <a href="https://creativecommons.org/licenses/by/4.0/deed.zh" rel="external nofollow noreferrer" target="_blank">CC BY 4.0</a>
+                    许可协议。转载请注明来源
+                    <a href="/f7.github.io/about" target="_blank">f7</a>
+                    !
+                </span>
+            </div>
+        
+    </div>
+
+    <script async defer>
+      document.addEventListener("copy", function (e) {
+        let toastHTML = '<span>复制成功，请遵循本文的转载规则</span><button class="btn-flat toast-action" onclick="navToReprintStatement()" style="font-size: smaller">查看</a>';
+        M.toast({html: toastHTML})
+      });
+
+      function navToReprintStatement() {
+        $("html, body").animate({scrollTop: $("#reprint-statement").offset().top - 80}, 800);
+      }
+    </script>
+
+
+
+            <div class="tag_share" style="display: block;">
+                <div class="post-meta__tag-list" style="display: inline-block;">
+                    
+                        <div class="article-tag">
+                            
+                                <a href="/f7.github.io/tags/Redis/">
+                                    <span class="chip bg-color">Redis</span>
+                                </a>
+                            
+                                <a href="/f7.github.io/tags/I-O/">
+                                    <span class="chip bg-color">I/O</span>
+                                </a>
+                            
+                                <a href="/f7.github.io/tags/Reactor/">
+                                    <span class="chip bg-color">Reactor</span>
+                                </a>
+                            
+                        </div>
+                    
+                </div>
+                <div class="post_share" style="zoom: 80%; width: fit-content; display: inline-block; float: right; margin: -0.15rem 0;">
+                    <link rel="stylesheet" type="text/css" href="/f7.github.io/libs/share/css/share.min.css">
+<div id="article-share">
+
+    
+    <div class="social-share" data-sites="twitter,facebook,google,qq,qzone,wechat,weibo,douban,linkedin" data-wechat-qrcode-helper="<p>微信扫一扫即可分享！</p>"></div>
+    <script src="/f7.github.io/libs/share/js/social-share.min.js"></script>
+    
+
+    
+
+</div>
+
+                </div>
+            </div>
+            
+                <style>
+    #reward {
+        margin: 40px 0;
+        text-align: center;
+    }
+
+    #reward .reward-link {
+        font-size: 1.4rem;
+        line-height: 38px;
+    }
+
+    #reward .btn-floating:hover {
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2), 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    #rewardModal {
+        width: 320px;
+        height: 350px;
+    }
+
+    #rewardModal .reward-title {
+        margin: 15px auto;
+        padding-bottom: 5px;
+    }
+
+    #rewardModal .modal-content {
+        padding: 10px;
+    }
+
+    #rewardModal .close {
+        position: absolute;
+        right: 15px;
+        top: 15px;
+        color: rgba(0, 0, 0, 0.5);
+        font-size: 1.3rem;
+        line-height: 20px;
+        cursor: pointer;
+    }
+
+    #rewardModal .close:hover {
+        color: #ef5350;
+        transform: scale(1.3);
+        -moz-transform:scale(1.3);
+        -webkit-transform:scale(1.3);
+        -o-transform:scale(1.3);
+    }
+
+    #rewardModal .reward-tabs {
+        margin: 0 auto;
+        width: 210px;
+    }
+
+    .reward-tabs .tabs {
+        height: 38px;
+        margin: 10px auto;
+        padding-left: 0;
+    }
+
+    .reward-content ul {
+        padding-left: 0 !important;
+    }
+
+    .reward-tabs .tabs .tab {
+        height: 38px;
+        line-height: 38px;
+    }
+
+    .reward-tabs .tab a {
+        color: #fff;
+        background-color: #ccc;
+    }
+
+    .reward-tabs .tab a:hover {
+        background-color: #ccc;
+        color: #fff;
+    }
+
+    .reward-tabs .wechat-tab .active {
+        color: #fff !important;
+        background-color: #22AB38 !important;
+    }
+
+    .reward-tabs .alipay-tab .active {
+        color: #fff !important;
+        background-color: #019FE8 !important;
+    }
+
+    .reward-tabs .reward-img {
+        width: 210px;
+        height: 210px;
+    }
+</style>
+
+<div id="reward">
+    <a href="#rewardModal" class="reward-link modal-trigger btn-floating btn-medium waves-effect waves-light red">赏</a>
+
+    <!-- Modal Structure -->
+    <div id="rewardModal" class="modal">
+        <div class="modal-content">
+            <a class="close modal-close"><i class="fas fa-times"></i></a>
+            <h4 class="reward-title">你的赏识是我前进的动力</h4>
+            <div class="reward-content">
+                <div class="reward-tabs">
+                    <ul class="tabs row">
+                        <li class="tab col s6 alipay-tab waves-effect waves-light"><a href="#alipay">支付宝</a></li>
+                        <li class="tab col s6 wechat-tab waves-effect waves-light"><a href="#wechat">微 信</a></li>
+                    </ul>
+                    <div id="alipay">
+                        <img src="/f7.github.io/medias/reward/alipay.jpg" class="reward-img" alt="支付宝打赏二维码">
+                    </div>
+                    <div id="wechat">
+                        <img src="/f7.github.io/medias/reward/wechat.png" class="reward-img" alt="微信打赏二维码">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(function () {
+        $('.tabs').tabs();
+    });
+</script>
+
+            
+        </div>
+    </div>
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+<article id="prenext-posts" class="prev-next articles">
+    <div class="row article-row">
+        
+        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+            <div class="article-badge left-badge text-color">
+                <i class="far fa-dot-circle"></i>&nbsp;本篇
+            </div>
+            <div class="card">
+                <a href="/f7.github.io/2024/01/10/Redis%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
+                    <div class="card-image">
+                        
+                        
+                        <img src="/f7.github.io/medias/featureimages/5.jpg" class="responsive-img" alt="Redis网络模型源码分析">
+                        
+                        <span class="card-title">Redis网络模型源码分析</span>
+                    </div>
+                </a>
+                <div class="card-content article-content">
+                    <div class="summary block-with-text">
+                        
+                            
+                        
+                    </div>
+                    <div class="publish-info">
+                            <span class="publish-date">
+                                <i class="far fa-clock fa-fw icon-date"></i>2024-01-10
+                            </span>
+                        <span class="publish-author">
+                            
+                            <i class="fas fa-user fa-fw"></i>
+                            f7
+                            
+                        </span>
+                    </div>
+                </div>
+
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/f7.github.io/tags/Redis/">
+                        <span class="chip bg-color">Redis</span>
+                    </a>
+                    
+                    <a href="/f7.github.io/tags/I-O/">
+                        <span class="chip bg-color">I/O</span>
+                    </a>
+                    
+                    <a href="/f7.github.io/tags/Reactor/">
+                        <span class="chip bg-color">Reactor</span>
+                    </a>
+                    
+                </div>
+                
+            </div>
+        </div>
+        
+        
+        <div class="article col s12 m6" data-aos="fade-up">
+            <div class="article-badge right-badge text-color">
+                下一篇&nbsp;<i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="card">
+                <a href="/f7.github.io/2021/04/19/%E8%B7%B3%E8%A1%A8/">
+                    <div class="card-image">
+                        
+                        
+                        <img src="/f7.github.io/medias/featureimages/21.jpg" class="responsive-img" alt="跳表">
+                        
+                        <span class="card-title">跳表</span>
+                    </div>
+                </a>
+                <div class="card-content article-content">
+                    <div class="summary block-with-text">
+                        
+                            
+                        
+                    </div>
+                    <div class="publish-info">
+                            <span class="publish-date">
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-04-19
+                            </span>
+                        <span class="publish-author">
+                            
+                            <i class="fas fa-bookmark fa-fw icon-category"></i>
+                            
+                            <a href="/f7.github.io/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/" class="post-category">
+                                    数据结构与算法
+                                </a>
+                            
+                            
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/f7.github.io/tags/redis%E6%9C%89%E5%BA%8F%E9%9B%86%E5%90%88%E5%BA%95%E5%B1%82/">
+                        <span class="chip bg-color">redis有序集合底层</span>
+                    </a>
+                    
+                    <a href="/f7.github.io/tags/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">
+                        <span class="chip bg-color">数据结构</span>
+                    </a>
+                    
+                </div>
+                
+            </div>
+        </div>
+        
+    </div>
+</article>
+
+</div>
+
+
+<script>
+    $('#articleContent').on('copy', function (e) {
+        // IE8 or earlier browser is 'undefined'
+        if (typeof window.getSelection === 'undefined') return;
+
+        var selection = window.getSelection();
+        // if the selection is short let's not annoy our users.
+        if (('' + selection).length < Number.parseInt('120')) {
+            return;
+        }
+
+        // create a div outside of the visible area and fill it with the selected text.
+        var bodyElement = document.getElementsByTagName('body')[0];
+        var newdiv = document.createElement('div');
+        newdiv.style.position = 'absolute';
+        newdiv.style.left = '-99999px';
+        bodyElement.appendChild(newdiv);
+        newdiv.appendChild(selection.getRangeAt(0).cloneContents());
+
+        // we need a <pre> tag workaround.
+        // otherwise the text inside "pre" loses all the line breaks!
+        if (selection.getRangeAt(0).commonAncestorContainer.nodeName === 'PRE') {
+            newdiv.innerHTML = "<pre>" + newdiv.innerHTML + "</pre>";
+        }
+
+        var url = document.location.href;
+        newdiv.innerHTML += '<br />'
+            + '来源: f7<br />'
+            + '文章作者: f7<br />'
+            + '文章链接: <a href="' + url + '">' + url + '</a><br />'
+            + '本文章著作权归作者所有，任何形式的转载都请注明出处。';
+
+        selection.selectAllChildren(newdiv);
+        window.setTimeout(function () {bodyElement.removeChild(newdiv);}, 200);
+    });
+</script>
+
+
+<!-- 代码块功能依赖 -->
+<script type="text/javascript" src="/f7.github.io/libs/codeBlock/codeBlockFuction.js"></script>
+
+<!-- 代码语言 -->
+
+<script type="text/javascript" src="/f7.github.io/libs/codeBlock/codeLang.js"></script>
+
+
+<!-- 代码块复制 -->
+
+<script type="text/javascript" src="/f7.github.io/libs/codeBlock/codeCopy.js"></script>
+
+
+<!-- 代码块收缩 -->
+
+<script type="text/javascript" src="/f7.github.io/libs/codeBlock/codeShrink.js"></script>
+
+
+    </div>
+    <div id="toc-aside" class="expanded col l3 hide-on-med-and-down">
+        <div class="toc-widget card" style="background-color: white;">
+            <div class="toc-title"><i class="far fa-list-alt"></i>&nbsp;&nbsp;目录</div>
+            <div id="toc-content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- TOC 悬浮按钮. -->
+
+<div id="floating-toc-btn" class="hide-on-med-and-down">
+    <a class="btn-floating btn-large bg-color">
+        <i class="fas fa-list-ul"></i>
+    </a>
+</div>
+
+
+<script src="/f7.github.io/libs/tocbot/tocbot.min.js"></script>
+<script>
+    $(function () {
+        tocbot.init({
+            tocSelector: '#toc-content',
+            contentSelector: '#articleContent',
+            headingsOffset: -($(window).height() * 0.4 - 45),
+            collapseDepth: Number('0'),
+            headingSelector: 'h2, h3, h4'
+        });
+
+        // modify the toc link href to support Chinese.
+        let i = 0;
+        let tocHeading = 'toc-heading-';
+        $('#toc-content a').each(function () {
+            $(this).attr('href', '#' + tocHeading + (++i));
+        });
+
+        // modify the heading title id to support Chinese.
+        i = 0;
+        $('#articleContent').children('h2, h3, h4').each(function () {
+            $(this).attr('id', tocHeading + (++i));
+        });
+
+        // Set scroll toc fixed.
+        let tocHeight = parseInt($(window).height() * 0.4 - 64);
+        let $tocWidget = $('.toc-widget');
+        $(window).scroll(function () {
+            let scroll = $(window).scrollTop();
+            /* add post toc fixed. */
+            if (scroll > tocHeight) {
+                $tocWidget.addClass('toc-fixed');
+            } else {
+                $tocWidget.removeClass('toc-fixed');
+            }
+        });
+
+        
+        /* 修复文章卡片 div 的宽度. */
+        let fixPostCardWidth = function (srcId, targetId) {
+            let srcDiv = $('#' + srcId);
+            if (srcDiv.length === 0) {
+                return;
+            }
+
+            let w = srcDiv.width();
+            if (w >= 450) {
+                w = w + 21;
+            } else if (w >= 350 && w < 450) {
+                w = w + 18;
+            } else if (w >= 300 && w < 350) {
+                w = w + 16;
+            } else {
+                w = w + 14;
+            }
+            $('#' + targetId).width(w);
+        };
+
+        // 切换TOC目录展开收缩的相关操作.
+        const expandedClass = 'expanded';
+        let $tocAside = $('#toc-aside');
+        let $mainContent = $('#main-content');
+        $('#floating-toc-btn .btn-floating').click(function () {
+            if ($tocAside.hasClass(expandedClass)) {
+                $tocAside.removeClass(expandedClass).hide();
+                $mainContent.removeClass('l9');
+            } else {
+                $tocAside.addClass(expandedClass).show();
+                $mainContent.addClass('l9');
+            }
+            fixPostCardWidth('artDetail', 'prenext-posts');
+        });
+        
+    });
+</script>
+
+    
+
+</main>
+
+
+
+
+    <footer class="page-footer bg-color">
+    
+        <link rel="stylesheet" href="/f7.github.io/libs/aplayer/APlayer.min.css">
+<style>
+    .aplayer .aplayer-lrc p {
+        
+        display: none;
+        
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 16px !important;
+    }
+
+    .aplayer .aplayer-lrc p.aplayer-lrc-current {
+        
+        display: none;
+        
+        font-size: 15px;
+        color: #42b983;
+    }
+
+    
+    .aplayer.aplayer-fixed.aplayer-narrow .aplayer-body {
+        left: -66px !important;
+    }
+
+    .aplayer.aplayer-fixed.aplayer-narrow .aplayer-body:hover {
+        left: 0px !important;
+    }
+
+    
+</style>
+<div class="">
+    
+    <div class="row">
+        <meting-js class="col l8 offset-l2 m10 offset-m1 s12"
+                   server="netease"
+                   type="playlist"
+                   id="503838841"
+                   fixed='true'
+                   autoplay='false'
+                   theme='#42b983'
+                   loop='all'
+                   order='random'
+                   preload='auto'
+                   volume='0.7'
+                   list-folded='true'
+        >
+        </meting-js>
+    </div>
+</div>
+
+<script src="/f7.github.io/libs/aplayer/APlayer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/meting@2/dist/Meting.min.js"></script>
+
+    
+    <div class="container row center-align" style="margin-bottom: 0px !important;">
+        <div class="col s12 m8 l8 copy-right">
+            Copyright&nbsp;&copy;
+            
+                <span id="year">2019-2024</span>
+            
+            <span id="year">2019</span>
+            <a href="/f7.github.io/about" target="_blank">f7</a>
+            |&nbsp;Powered by&nbsp;<a href="https://hexo.io/" target="_blank">Hexo</a>
+            |&nbsp;Theme&nbsp;<a href="https://github.com/blinkfox/hexo-theme-matery" target="_blank">Matery</a>
+            <br>
+            
+            
+            
+            
+            
+            
+            <span id="busuanzi_container_site_pv">
+                |&nbsp;<i class="far fa-eye"></i>&nbsp;总访问量:&nbsp;<span id="busuanzi_value_site_pv"
+                    class="white-color"></span>&nbsp;次
+            </span>
+            
+            
+            <span id="busuanzi_container_site_uv">
+                |&nbsp;<i class="fas fa-users"></i>&nbsp;总访问人数:&nbsp;<span id="busuanzi_value_site_uv"
+                    class="white-color"></span>&nbsp;人
+            </span>
+            
+            <br>
+            
+            <br>
+            
+        </div>
+        <div class="col s12 m4 l4 social-link social-statis">
+    <a href="https://github.com/kkalts" class="tooltipped" target="_blank" data-tooltip="访问我的GitHub" data-position="top" data-delay="50">
+        <i class="fab fa-github"></i>
+    </a>
+
+
+
+    <a href="mailto:2784527926@qq.com" class="tooltipped" target="_blank" data-tooltip="邮件联系我" data-position="top" data-delay="50">
+        <i class="fas fa-envelope-open"></i>
+    </a>
+
+
+
+
+
+
+
+    <a href="tencent://AddContact/?fromId=50&fromSubId=1&subcmd=all&uin=2784527926" class="tooltipped" target="_blank" data-tooltip="QQ联系我: 2784527926" data-position="top" data-delay="50">
+        <i class="fab fa-qq"></i>
+    </a>
+
+
+
+
+
+
+
+    <a href="/f7.github.io/atom.xml" class="tooltipped" target="_blank" data-tooltip="RSS 订阅" data-position="top" data-delay="50">
+        <i class="fas fa-rss"></i>
+    </a>
+
+</div>
+    </div>
+</footer>
+
+<div class="progress-bar"></div>
+
+
+    <!-- 搜索遮罩框 -->
+<div id="searchModal" class="modal">
+    <div class="modal-content">
+        <div class="search-header">
+            <span class="title"><i class="fas fa-search"></i>&nbsp;&nbsp;搜索</span>
+            <input type="search" id="searchInput" name="s" placeholder="请输入搜索的关键字"
+                   class="search-input">
+        </div>
+        <div id="searchResult"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+$(function () {
+    var searchFunc = function (path, search_id, content_id) {
+        'use strict';
+        $.ajax({
+            url: path,
+            dataType: "xml",
+            success: function (xmlResponse) {
+                // get the contents from search data
+                var datas = $("entry", xmlResponse).map(function () {
+                    return {
+                        title: $("title", this).text(),
+                        content: $("content", this).text(),
+                        url: $("url", this).text()
+                    };
+                }).get();
+                var $input = document.getElementById(search_id);
+                var $resultContent = document.getElementById(content_id);
+                $input.addEventListener('input', function () {
+                    var str = '<ul class=\"search-result-list\">';
+                    var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                    $resultContent.innerHTML = "";
+                    if (this.value.trim().length <= 0) {
+                        return;
+                    }
+                    // perform local searching
+                    datas.forEach(function (data) {
+                        var isMatch = true;
+                        var data_title = data.title.trim().toLowerCase();
+                        var data_content = data.content.trim().replace(/<[^>]+>/g, "").toLowerCase();
+                        var data_url = data.url;
+                        data_url = data_url.indexOf('/') === 0 ? data.url : '/' + data_url;
+                        var index_title = -1;
+                        var index_content = -1;
+                        var first_occur = -1;
+                        // only match artiles with not empty titles and contents
+                        if (data_title !== '' && data_content !== '') {
+                            keywords.forEach(function (keyword, i) {
+                                index_title = data_title.indexOf(keyword);
+                                index_content = data_content.indexOf(keyword);
+                                if (index_title < 0 && index_content < 0) {
+                                    isMatch = false;
+                                } else {
+                                    if (index_content < 0) {
+                                        index_content = 0;
+                                    }
+                                    if (i === 0) {
+                                        first_occur = index_content;
+                                    }
+                                }
+                            });
+                        }
+                        // show search results
+                        if (isMatch) {
+                            str += "<li><a href='" + data_url + "' class='search-result-title'>" + data_title + "</a>";
+                            var content = data.content.trim().replace(/<[^>]+>/g, "");
+                            if (first_occur >= 0) {
+                                // cut out 100 characters
+                                var start = first_occur - 20;
+                                var end = first_occur + 80;
+                                if (start < 0) {
+                                    start = 0;
+                                }
+                                if (start === 0) {
+                                    end = 100;
+                                }
+                                if (end > content.length) {
+                                    end = content.length;
+                                }
+                                var match_content = content.substr(start, end);
+                                // highlight all keywords
+                                keywords.forEach(function (keyword) {
+                                    var regS = new RegExp(keyword, "gi");
+                                    match_content = match_content.replace(regS, "<em class=\"search-keyword\">" + keyword + "</em>");
+                                });
+
+                                str += "<p class=\"search-result\">" + match_content + "...</p>"
+                            }
+                            str += "</li>";
+                        }
+                    });
+                    str += "</ul>";
+                    $resultContent.innerHTML = str;
+                });
+            }
+        });
+    };
+
+    searchFunc('/f7.github.io/search.xml', 'searchInput', 'searchResult');
+});
+</script>
+
+    <!-- 回到顶部按钮 -->
+<div id="backTop" class="top-scroll">
+    <a class="btn-floating btn-large waves-effect waves-light" href="#!">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+</div>
+
+
+    <script src="/f7.github.io/libs/materialize/materialize.min.js"></script>
+    <script src="/f7.github.io/libs/masonry/masonry.pkgd.min.js"></script>
+    <script src="/f7.github.io/libs/aos/aos.js"></script>
+    <script src="/f7.github.io/libs/scrollprogress/scrollProgress.min.js"></script>
+    <script src="/f7.github.io/libs/lightGallery/js/lightgallery-all.min.js"></script>
+    <script src="/f7.github.io/js/matery.js"></script>
+
+    <!-- Baidu Analytics -->
+
+    <!-- Baidu Push -->
+
+<script>
+    (function () {
+        var bp = document.createElement('script');
+        var curProtocol = window.location.protocol.split(':')[0];
+        if (curProtocol === 'https') {
+            bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';
+        } else {
+            bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+        }
+        var s = document.getElementsByTagName("script")[0];
+        s.parentNode.insertBefore(bp, s);
+    })();
+</script>
+
+    
+    <script src="/f7.github.io/libs/others/clicklove.js" async="async"></script>
+    
+    
+    <script async src="/f7.github.io/libs/others/busuanzi.pure.mini.js"></script>
+    
+
+    
+
+    
+
+    <!--腾讯兔小巢-->
+    
+    
+
+    
+
+    
+
+    
+    <script src="/f7.github.io/libs/instantpage/instantpage.js" type="module"></script>
+    
+
+</body>
+
+</html>
